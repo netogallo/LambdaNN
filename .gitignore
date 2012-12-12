@@ -3,3 +3,9 @@ _cache
 *.o
 _site
 dist
+*.aux
+*.bbl
+*.blg
+*.dvi
+*.log
+*.out
