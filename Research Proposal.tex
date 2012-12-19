@@ -23,11 +23,11 @@ Motion capture is a method used to digitalize human motion. It is usually used t
 \\\\
 The classification of motion capture data is of particular interest for searching \& indexing motion capture data\cite{EfficientMotionIndexing,AutomatedExtractionMotion}, SLAM\cite{EstimationHummanTraj} and sign language recognition\cite{ZhengSegmentationRecognition}. The film and video game industries work with huge amounts of motion capture data. Automatic motion capture data classification is needed to build motion capture databases with efficient querying mechanisms. This is a challenging task since its resolution resides in the classification of time series.
 \\\\
-There exists several approaches to classify motion capture data. Motion Templates \cite{MotionTemplates} classify the data by inspecting semantic properties of human movement. The classification is done by determining which properties are present and absent in a particular motion. Motion Templates have the weakness that the semantic properties must be manually specified which makes them inconvenient when dealing with several different motion types. Match Webs\cite{AutomatedExtractionMotion} is a searching method that finds motions that are numerically similar to the query and uses the results as new queries to obtain more results. This method can only search but not classify motion capture data and requires big databases to work. It can also have difficulties dealing with unaligned motions since it would require many queries to reach numerical similarity. Self Organizing Maps\cite{EfficientMotionIndexing} are a learning approach which converts the motion capture data into a two dimensional map which is then clustered. It requires that the data is aligned in time which is done by pre-processing the data with the Smith-Watterman algorithm. Self Organizing Maps are very successful for classification and segmentation of motion capture data. There exist methods to classify time series which can be used for motion capture data. The Extended Frobbenius Norm (eros)\cite{SimilarityMeasure} is a metric that use the eigenvectors of the covariance matrices of two time series to measure the distance (or similarity) of the time series. This method can be used to classify motion streams by measuring the similarity among them. Since this is a statistical approach, it might ignore semantic properties of the motions such as the importance of the hand grip while differentiating grabbing and touching an object.
+There exists several approaches to classify motion capture data. Motion Templates \cite{MotionTemplates} classify the data by inspecting semantic properties of human movement. The classification is done by determining which properties are present and absent in a particular motion. Motion Templates have the weakness that the semantic properties must be manually specified which makes them inconvenient when dealing with several different motion types. Match Webs\cite{AutomatedExtractionMotion} is a searching method that finds motions that are numerically similar to the query and uses the results as new queries to obtain more results. This method can only search but not classify motion capture data and requires big databases to work. It can also have difficulties dealing with unaligned motions since it would require many queries to reach numerical similarity. Self Organizing Maps\cite{EfficientMotionIndexing} is a learning approach which converts the motion capture data into a two dimensional map which is then clustered. It requires that the data is aligned in time which is done by pre-processing the data with the Smith-Watterman algorithm. Self Organizing Maps are very successful for classification and segmentation of motion capture data. There exist methods to classify time series which can be used for motion capture data. The Extended Frobbenius Norm (eros)\cite{SimilarityMeasure} is a metric that uses eigenvector matrices of the SVD decomposition of the covariance matrices of two time series to measure the distance (or similarity) of the time series. This method can be used to classify motion streams by measuring the similarity among them. Since this is a statistical approach, it might ignore semantic properties of the motions such as the importance of the hand grip while differentiating grabbing and touching an object.
 \\\\
-Echo state neural networks have been very successful to learn and simulate time series\cite{JaegerESNTutorial}. Since human motion is a time series, echo state neural networks should be able to learn various human motions effectively. This research will exploit the learning power of echo state neural networks to create a new motion capture data classifier. This method will be capable of extending its scope by learning new motions such that they can be further classified. This method will be compared to other existing methods and further analyzed to determine if it is suitable for automatic segmentation of motion capture data.
-
-\section{Tools and Methods}
+Echo state neural networks have been very successful to learn and simulate time series\cite{JaegerESNTutorial}. Since human motion is a time series, echo state neural networks should be able to learn various human motions effectively. This research will exploit the learning power of echo state neural networks to create a new motion capture data classifier. This method will be capable of extending its scope by learning new motions such that they can be further classified. The method will be compared to other existing methods and further analyzed to determine if it is suitable for automatic segmentation of motion capture data.
+\pagebreak
+\section{Technologies Employed}
 
 \subsection{Echo State Neural Networks}
 
@@ -43,13 +43,14 @@ where,
 \begin{itemize}
   \item ${\bf f}=(f_1,f_2,...,f_N)$ are the output functions of the internal units (usually sigmond functions).
 \end{itemize}
+\pagebreak
 The output of the network at time $t$ is given by the equation
 \[
 {\bf y}(t+1)={\bf f^{out}}({\bf W^{out}}({\bf x}(t),{\bf y}(t)))
 \]
-where, 
+where,
 \begin{itemize}
-  \item ${\bf f^{out}}=(f_1^{out},f_2^{out},...,f_L^{out})$ is the output units functions 
+  \item ${\bf f^{out}}=(f_1^{out},f_2^{out},...,f_L^{out})$ is the output units functions
   \item $({\bf x}(t),{\bf y}(t))$ is the concatenation of the internal state and output vectors
 \end{itemize}
 The training procedure for ESNs goes as follows. Suppose we are given the output signal ${\bf y_{teach}}(t)$ for $t=0,..,t_{max}$. We wish to have a ESN whose output signal ${\bf y}(t)$ is as close as possible to ${\bf y_{teach}}(t)$. This is done as follows.\\\\
@@ -58,7 +59,8 @@ The training procedure for ESNs goes as follows. Suppose we are given the output
 \[
 {\bf x}(t+1)={\bf f}({\bf Wx}(t)+{\bf W^{back}y_{teach}}(t))
 \]
-The network must be run in this way for some initial transient and the outputs during this transient will be discarded. It is better to discard a big amount of initial states, but the amount of data discarded also depends on the amount of training data available.\\\\
+The network must be run in this way for some initial transient and the outputs during this transient will be discarded. It is better to discard a big amount of initial states, but the amount of data discarded also depends on the amount of training data available.\pagebreak
+
 {\bf Collect the ESN output} for the remaining training data. We will denote with $t_{min}$ the time where the output began to be collected and $t_{max}$ the time where the last output was collected. Now to complete the training, our task is to minimize the following error function:
 \[
 mse_{train,j} = 1/(t_{max}-t_{min})\sum_{t=t_{min}}^{t_{max}}(g'_j(t) - \sum_{i=1}^{N}w_{j,i}^{out}x_i(n))^2
@@ -93,13 +95,13 @@ Human motion is captured by placing identifiers on a human's joints and tracking
 \\\\
 The motion capture data from HDM05 database\cite{MotionTemplatesURL} is available in Coordinate 3D (C3D) and Acclaim Motion Capture (AMC) formats. The C3D format is binary and the ACM format is plain text. Therefore the ACM format will be preferred in this research since is easier to extract the data from. The AMC files in this library consist of 29 joints with a total of 62 degrees of freedom. The data is encoded in frames and each frame specifies the value of the 62 entries. 
 \\\\
-The position in space of each of the joints can be calculated by starting from the root joint and adding the lenght of the joint after applying the rotational transformations specified for that joint. This process is then repeated to reach the next joints. It is possible that many joints extend from a single joint. There exist software to parse these file formats, such as a importer for Matlab available in \cite{MotionTemplatesURL}.
-
+The position in space of each of the joints can be calculated by starting from the root joint and adding the length of the joint after applying the rotational transformations specified for that joint. This process is then repeated to reach the next joints. It is possible that many joints extend from a single joint. There exist software to parse these file formats, such as a importer for Matlab available in \cite{MotionTemplatesURL}.
+\pagebreak
 \section{Objectives and Evaluation}
 
 The objectives of this research are the following:
 \begin{itemize}
-\item Develop a motion capture data classifier based on echo state neural networks.
+\item Develop a motion capture data classifier based on echo state neural networks
 \item Develop a method to reduce the dimensionality of motion capture data and still archive a successful classification
 \item Benchmark the method with the data from HDM05 \cite{MotionTemplatesURL}
 \item Compare this method with existing methods, particularly with Motion Templates\cite{MotionTemplates} and Self Organizing Maps\cite{EfficientMotionIndexing}
@@ -134,7 +136,7 @@ where,
   \item $n$ is the length of the movement ${\bf y_{test}}$. 
 \end{itemize}
 Given this error, $mse_{e_{m_i},m_i} < mse_{e_{m_i},m_j}$ for all $i,j<n$, $j\neq i$. If the conditions are favorable the difference will be significant for all cases.
-
+\\\\
 After building the set of expert ESNs $E$, the classification performance of the networks will be evaluated. A collection with samples of every movement $S_{eval}$ will be built. A reference set $R:=\{(({\bf y_i},m_i) | {\bf y_i} \in S_{eval} \wedge {\bf y_i}\in s_{m_i}\})$ will contain pairs matching a movement and the type of that movement. All these movements will be used to test the performance of the classifier. All of the movements ${\bf y_{test}}(t)\in S_{eval}$ will be used to drive each of the ESNs in $E$ and the output of the ESN will be compared with the values of ${\bf y_{test}}(t)$ for all times $t$ using the following error function:
 \[
 mse_i^{classify}({\bf y_{test}}):=\frac{1}{n}\sum_{j=0}^{n}({\bf y_{test}}(j) - {\bf y_i}(j))^2
