@@ -17,8 +17,15 @@ type ReservoirState a = Vector a
 type InputVector a = Vector a
 type OutputState a = Vector a
 
-data Reservoir a = Reservoir (ReservoirState a) (ReservoirState a) (WeightMatrix a) (WeightMatrix a) (WeightMatrix a) (WeightMatrix a)
-
+data Reservoir a = Reservoir {
+     internalState :: ReservoirState a,
+     outputState :: ReservoirState a,
+     inputWeights :: WeightMatrix a,
+     internalWeights :: WeightMatrix a,
+     outputWeights :: WeightMatrix a,
+     outputFeedbackWeights :: WeightMatrix a
+}
+     
 instance Show (Reservoir Double) where
   show (Reservoir s oState inWM intWM outWM ofbWM) = "Reservoir " ++ (show s) ++ " " ++ (show oState) ++ " " ++ (show inWM) ++ " " ++ (show intWM) ++ " " ++ (show outWM) ++ " " ++ (show ofbWM)
 
@@ -68,7 +75,7 @@ makeReservoir inputs outputs units conn = do
   let
     state = buildVector units (\_->0)
     oState = buildVector outputs (\_->0)
-    outWM = zeros outputs (units+inputs)
+    outWM = zeros outputs (units+inputs+outputs)
   return $ Reservoir state oState inWM intWM outWM ofbWM
 
 
@@ -77,3 +84,6 @@ reservoirDim (Reservoir state _ _ _ _ _) = dim state
 reservoirInDim (Reservoir _ _ inWM _ _ _) = dim . head . toRows $ inWM
 
 reservoirOutDim (Reservoir _ oState _ _ _ _) = dim oState
+
+updateReservoirState :: ReservoirState a -> ReservoirState a -> Reservoir a -> Reservoir a
+updateReservoirState newState newOut (Reservoir _ _ inWM intWM outWM ofbWM) = Reservoir newState newOut inWM intWM outWM ofbWM
