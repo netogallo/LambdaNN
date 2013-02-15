@@ -6,18 +6,19 @@ import Control.Monad              (foldM,forM)
 import Data.Packed.Matrix
 import Data.Packed.Vector
 import Numeric.Container          ((<>))
-import Numeric.LinearAlgebra.Algorithms (pinv)
+import Numeric.LinearAlgebra.Algorithms (pinv,inv)
 import Numeric.LinearAlgebra.Util (zeros)
 import Reservoir.Reservoir
 import System.Random
 import Data.Maybe (fromJust)
+import Foreign.Storable (Storable)
 
 data Noiseless = Noiseless
 
 data RunningState rand a = RunningState {
      runtimeReservoir :: Reservoir a,
-     noiseGenerator :: (rand,rand -> (a,rand)),
-     networkFunctions :: (ReservoirState a -> ReservoirState a,ReservoirState a -> ReservoirState a)
+     noiseGenerator :: (rand,rand -> (a,rand))
+--     networkFunctions :: (ReservoirState a -> ReservoirState a,ReservoirState a -> ReservoirState a)
 }
 
 data RunReservoirM context rand b = RunReservoirM {runReservoirM :: RunningState rand context -> (RunningState rand context,b)}
@@ -37,9 +38,10 @@ data TrainingState a = TrainingState (Reservoir a) [Vector a] [Vector a]
 instance Show (TrainingState Double) where
   show (TrainingState r v1 v2) = "TrainingState "++(show r)++" "++(show v1)++" "++(show v2)
 
-runReservoirNoiseless reservoir functions reservoirM = (runReservoirM reservoirM) $ RunningState reservoir (Noiseless,noiseless) functions
-                                                       where
-                                                         noiseless _ = (0,Noiseless)
+-- runReservoirNoiseless :: Storable a => Reservoir a -> RunReservoirM context rand a -> (RunningState rand context,a)
+runReservoirNoiseless reservoir reservoirM = (runReservoirM reservoirM) $ RunningState reservoir (Noiseless,noiseless)
+  where
+    noiseless _ = (0,Noiseless)
   
 
 {-
@@ -109,23 +111,31 @@ trainUpdateNetwork noise (f,fInv) (input,teach) reservoir = let
    Reservoir state teach inWM intWM outWM ofbWM
 -}
 
-networkTrainerPInv inputs teach = do
+networkTrainerRRegression inputs teach = networkTrainerGeneric inputs teach $ \statesMatrix teachMatrix -> trans $ (inv $ (trans statesMatrix) <> statesMatrix + 0.6) <> (trans statesMatrix) <> teachMatrix
+
+networkTrainerPInv inputs teach = networkTrainerGeneric inputs teach (\statesMatrix teachMatrix -> trans $ (pinv statesMatrix) <> teachMatrix)
+
+networkTrainerGeneric inputs teach regressionFun = do
   (intStates,_) <- runNetworkCollectedTeacherForced inputs teach
   reservoir <- getReservoir
   let
     teachMatrix = fromRows teach
-    newOutWM = trans $ (pinv intStates) <> teachMatrix
-  return $ Reservoir (internalState reservoir) (outputState reservoir) (inputWeights reservoir) (internalWeights reservoir) newOutWM (outputFeedbackWeights reservoir)
+    newOutWM = regressionFun intStates teachMatrix -- trans $ (pinv intStates) <> teachMatrix
+  return $ Reservoir (internalState reservoir) (outputState reservoir) (inputWeights reservoir) (internalWeights reservoir) newOutWM (outputFeedbackWeights reservoir) (networkFunctions reservoir)
     
 
 collectReservoirState reservoir oldReservoir input history =
   let        
     newIntState = asRow $ internalState reservoir
     newOutState = asRow $ outputState reservoir
+    (f,fOut) = networkFunctions reservoir
+    newCombinedState = case inputWeights reservoir of
+      Just _ -> [asRow . join $ [input,fOut $ internalState reservoir,outputState oldReservoir]]
+      Nothing -> [asRow . join $ [fOut $ internalState reservoir,outputState oldReservoir]]
   in
    case history of
-     Nothing -> Just (fromBlocks [[asRow input,newIntState,asRow $ outputState oldReservoir]],newOutState)
-     Just (states,outputs) -> Just (fromBlocks [[states],[asRow . join $ [input,internalState reservoir,outputState oldReservoir]]],fromBlocks [[outputs],[newOutState]])
+     Nothing -> Just (fromBlocks [newCombinedState],newOutState)
+     Just (states,outputs) -> Just (fromBlocks [[states],newCombinedState],fromBlocks [[outputs],[newOutState]])
 
 runNetworkCollected timeSeries = foldM collectState Nothing timeSeries
   >>= return . fromJust
@@ -146,7 +156,12 @@ runNetworkCollectedTeacherForced inputs outputs = do
 
 runNetwork timeSeries = forM timeSeries (\value -> updateNetwork value >>= return . outputState)
 
-updateState reservoir runningState = RunningState reservoir (noiseGenerator runningState) (networkFunctions runningState)
+runNetworkTeacherForced inputs outputs = do
+  reservoir <- getReservoir >>= \r -> return $ updateReservoirState (internalState r) (head outputs) r
+  _ <- setReservoir reservoir
+  forM (zip (drop 1 inputs) (drop 1 outputs)) $ \(i,o) -> updateNetworkTeacherForced i o
+
+updateState reservoir runningState = RunningState reservoir (noiseGenerator runningState)
 
 getNoise = RunReservoirM getNoiseM
 
@@ -155,19 +170,19 @@ getNoiseM runningState =
     (oldGenerator,noiseFun) = noiseGenerator runningState
     (val,generator) = noiseFun oldGenerator
   in
-   (RunningState (runtimeReservoir runningState) (generator,noiseFun) (networkFunctions runningState),val)
+   (RunningState (runtimeReservoir runningState) (generator,noiseFun),val)
 
 getReservoir = RunReservoirM $ \runningState -> (runningState,runtimeReservoir runningState)
 
-setReservoir reservoir = RunReservoirM $ \runningState -> (RunningState reservoir (noiseGenerator runningState) (networkFunctions runningState),())
+setReservoir reservoir = RunReservoirM $ \runningState -> (RunningState reservoir (noiseGenerator runningState),())
 
 updateNetworkTeacherForced input output = do
   reservoir <- updateNetwork input
   let
     newReservoir = updateReservoirState (internalState reservoir) output reservoir
   setReservoir newReservoir
-  return newReservoir
-  
+  return newReservoir  
+
 updateNetwork input = do
   r <- getReservoir
   let
@@ -177,16 +192,18 @@ updateNetwork input = do
 
 updateNetworkM noise input runningState =
   let
-    (f,fOut) = networkFunctions runningState
     reservoir = runtimeReservoir runningState
-    --adjFun = head . toColumns
-    newState = f $ noise + (inputWeights reservoir <> input) + (internalWeights reservoir <> internalState reservoir) + (outputFeedbackWeights reservoir <> outputState reservoir)
-    -- globalMatrix = fromBlocks [[inputWeights reservoir,internalWeights reservoir,outputWeights reservoir]]
-    -- globalState = fromColumns [join [input,internalState reservoir,outputState reservoir]]
-
-    -- newState = f $ noise + (adjFun $ globalMatrix <> globalState)
-    -- newGlobalState = fromColumns [join [input,newState]]
-    newOut = fOut $ (outputWeights reservoir) <> (join [input,newState,outputState reservoir])
+    (f,fOut) = networkFunctions reservoir
+    inputMult = case inputWeights reservoir of
+      Nothing -> buildVector (reservoirDim reservoir) (\_->0)
+      Just inWM -> inWM <> input
+    internalMult = internalWeights reservoir <> internalState reservoir
+    outputMult = outputFeedbackWeights reservoir <> outputState reservoir
+    newState = f $ noise + inputMult + internalMult + outputMult
+    combinedState = case inputWeights reservoir of
+      Just _ -> join [input,newState,outputState reservoir]
+      Nothing -> join [newState,outputState reservoir]
+    newOut = (outputWeights reservoir) <> combinedState
     newNetwork = updateReservoirState newState newOut reservoir
   in
    (updateState newNetwork runningState,newNetwork)

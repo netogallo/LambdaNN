@@ -10,6 +10,7 @@ import           Data.RVar                    (sampleRVar)
 import           Numeric.LinearAlgebra.LAPACK (eigOnlyS)
 import           Numeric.LinearAlgebra.Util   (zeros)
 import           System.Random                (randomIO)
+import           Foreign.Storable             (Storable)
 
 -- | Matrix that contains the connection weights among states in the neural network
 type WeightMatrix a = Matrix a
@@ -20,14 +21,15 @@ type OutputState a = Vector a
 data Reservoir a = Reservoir {
      internalState :: ReservoirState a,
      outputState :: ReservoirState a,
-     inputWeights :: WeightMatrix a,
+     inputWeights :: Maybe (WeightMatrix a),
      internalWeights :: WeightMatrix a,
      outputWeights :: WeightMatrix a,
-     outputFeedbackWeights :: WeightMatrix a
+     outputFeedbackWeights :: WeightMatrix a,
+     networkFunctions :: (ReservoirState a->ReservoirState a,ReservoirState a->ReservoirState a)
 }
      
 instance Show (Reservoir Double) where
-  show (Reservoir s oState inWM intWM outWM ofbWM) = "Reservoir " ++ (show s) ++ " " ++ (show oState) ++ " " ++ (show inWM) ++ " " ++ (show intWM) ++ " " ++ (show outWM) ++ " " ++ (show ofbWM)
+  show (Reservoir s oState inWM intWM outWM ofbWM _) = "Reservoir " ++ (show s) ++ " " ++ (show oState) ++ " " ++ (show inWM) ++ " " ++ (show intWM) ++ " " ++ (show outWM) ++ " " ++ (show ofbWM)
 
 -- | Generate a random matrix of size n x m. The entries
 -- are between 0 and 1
@@ -67,23 +69,30 @@ makeIntWeightMatrix units conn = do
 
 -- | Generate a untrained random reservoir of neural networks of
 -- with the given ammount of inputs, outputs and internal units
-makeReservoir :: Int -> Int -> Int -> Double -> IO (Reservoir Double)
-makeReservoir inputs outputs units conn = do
+makeReservoir :: Int -> Int -> Int -> Double -> (ReservoirState Double -> ReservoirState Double,ReservoirState Double -> ReservoirState Double)-> IO (Reservoir Double)
+makeReservoir inputs outputs units conn ioFunctions= do
   intWM <- makeIntWeightMatrix units conn
-  inWM <- rand units inputs
+  inWM <- inputMatrix 
   ofbWM <- rand units outputs
   let
     state = buildVector units (\_->0)
     oState = buildVector outputs (\_->0)
     outWM = zeros outputs (units+inputs+outputs)
-  return $ Reservoir state oState inWM intWM outWM ofbWM
+  return $ Reservoir state oState inWM intWM outWM ofbWM ioFunctions
+  where
+    inputMatrix
+      | inputs > 0 = rand units inputs >>= return . return
+      | otherwise = return $ Nothing
 
+reservoirDim :: Foreign.Storable.Storable a => Reservoir a -> Int
+reservoirDim = dim . internalState
 
-reservoirDim (Reservoir state _ _ _ _ _) = dim state
+reservoirInDim reservoir = case inputWeights reservoir of
+  Just inWM -> dim . head . toRows $ inWM
+  Nothing -> 0
 
-reservoirInDim (Reservoir _ _ inWM _ _ _) = dim . head . toRows $ inWM
-
-reservoirOutDim (Reservoir _ oState _ _ _ _) = dim oState
+reservoirOutDim :: Foreign.Storable.Storable a => Reservoir a -> Int
+reservoirOutDim = dim . outputState
 
 updateReservoirState :: ReservoirState a -> ReservoirState a -> Reservoir a -> Reservoir a
-updateReservoirState newState newOut (Reservoir _ _ inWM intWM outWM ofbWM) = Reservoir newState newOut inWM intWM outWM ofbWM
+updateReservoirState newState newOut (Reservoir _ _ inWM intWM outWM ofbWM funs) = Reservoir newState newOut inWM intWM outWM ofbWM funs
