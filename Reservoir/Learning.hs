@@ -111,7 +111,9 @@ trainUpdateNetwork noise (f,fInv) (input,teach) reservoir = let
    Reservoir state teach inWM intWM outWM ofbWM
 -}
 
-networkTrainerRRegression inputs teach = networkTrainerGeneric inputs teach $ \statesMatrix teachMatrix -> trans $ (inv $ (trans statesMatrix) <> statesMatrix + 0.6) <> (trans statesMatrix) <> teachMatrix
+networkTrainerRRegression tradeoff inputs teach = networkTrainerGeneric inputs teach $ \statesMatrix teachMatrix -> trans $ (inv $ (trans statesMatrix) <> statesMatrix + tradeoff') <> (trans statesMatrix) <> teachMatrix
+  where
+    tradeoff' = mapMatrixWithIndex (\(i,j) v -> if i==j then tradeoff else v) 0
 
 networkTrainerPInv inputs teach = networkTrainerGeneric inputs teach (\statesMatrix teachMatrix -> trans $ (pinv statesMatrix) <> teachMatrix)
 

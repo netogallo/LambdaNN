@@ -1,6 +1,10 @@
 import Reservoir.Learning
+import Reservoir.LearningUtils (networksProfiler,defaultError)
 import Reservoir.Reservoir
 import Data.Packed.Vector
+import Foreign.Storable (Storable)
+import Foreign.Storable.Tuple
+import Data.Packed.Matrix
 
 henonMapR sx _ a b 1 = sx
 henonMapR sx sy a b n = (henonMapY (n-1)) + 1 - a*((henonMapR sx sy a b (n-1))^2)
@@ -24,32 +28,61 @@ henonMap sx sy a b n = let
        (res,fromList [prev @> 1,res])
        
 inVals :: [Vector Double]
-inVals = [fromList [x] | x <- [1 .. 500]]
+inVals = [fromList [x] | x <- [1 .. ]]
 
 hVals = map (\x -> mapVector (henonMap 1 1 1.4 0.3) x) inVals
 
-initial = take 100 dummy
-initialOut = take 100 hVals
-trainIn = take 300 $ drop 100 dummy
-trainOut = take 300 $ drop 100 hVals
-testIn = take 100 $ drop 400 dummy
-testOut = take 100 $ drop 400 hVals
-dummy = repeat $ fromList [0]
-funs = (mapVector tanh,id)
+adjTanh x = tanh x
 
-trainHenon = do
+config = (defaultConfig 0 100 1){inputFunction = mapVector adjTanh,
+                                 inputMatrixRange = Continuous (-0.1,0.1),
+                                 internalMatrixRange = Continuous (-0.1,0.1),
+                                 outputFeedbackRange = Continuous (-0.1,0.1),
+                                 internalSpectRadius = 0.95
+                                }
+
+initSize = 300
+trainSize = 1000
+testSize = 100
+
+initial = take initSize dummy
+initialOut = take initSize hVals
+trainIn = take trainSize $ drop initSize dummy
+trainOut = take trainSize $ drop initSize hVals
+testIn = take testSize $ drop (initSize + trainSize) dummy
+testOut = take testSize $ drop (initSize + trainSize) hVals
+dummy = repeat $ fromList [0]
+
+trainHenon tradeoff = do
   _ <- runNetworkTeacherForced initial initialOut
-  -- networkTrainerPInv trainIn trainOut
-  networkTrainerRRegression trainIn trainOut
+  --networkTrainerPInv trainIn trainOut
+  networkTrainerRRegression tradeoff trainIn trainOut
   
 hLearner = do
-  reservoir <- makeReservoir 0 1 50 0.2 funs
-  return $ runReservoirNoiseless reservoir trainHenon
+  reservoir <- makeReservoir config
+  return $ runReservoirNoiseless reservoir $ trainHenon 0.1
 
 hTester = do
   (_,reservoir) <- hLearner
   return $ runReservoirNoiseless reservoir $ runNetworkCollected testIn
 
+hMaker = do
+  reservoirs <- mapM (\_ -> makeReservoir config) [5..40]
+  let
+    networks = [network {internalWeights = mapMatrix (\e -> (s1/100)*e) (internalWeights network) } | s1 <- [1 .. 175] :: [Double],network <- reservoirs]
+    rregressions = [networkTrainerRRegression (tradeoff/10) | tradeoff <- [1 .. 5] :: [Double]]
+  let
+    result = networksProfiler runWrapper networks errorMeasure rregressions dummy hVals 100 500 100
+  return $ result
+  where
+    runWrapper :: Reservoir Double -> RunReservoirM Double Noiseless (Reservoir Double,Double) -> (RunningState Noiseless Double,(Reservoir Double,Double))
+    runWrapper = runReservoirNoiseless
+    errorMeasure :: Vector Double -> Vector Double -> Double
+    errorMeasure v1s v2s = let 
+      vector :: Vector (Double,Double)
+      vector = zipVector v1s v2s
+      in
+       foldVector (\(v1,v2) error -> error + defaultError v1 v2) 0 vector
     
 -- henonMapRec s a b p 0 = s
 -- henonMapRec s a b p 1 = 
