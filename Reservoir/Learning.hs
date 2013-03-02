@@ -131,13 +131,10 @@ collectReservoirState reservoir oldReservoir input history =
     newIntState = asRow $ internalState reservoir
     newOutState = asRow $ outputState reservoir
     (f,fOut) = networkFunctions reservoir
-    newCombinedState = case inputWeights reservoir of
-      Just _ -> [asRow . join $ [input,fOut $ internalState reservoir,outputState oldReservoir]]
-      Nothing -> [asRow . join $ [fOut $ internalState reservoir,outputState oldReservoir]]
   in
    case history of
-     Nothing -> Just (fromBlocks [newCombinedState],newOutState)
-     Just (states,outputs) -> Just (fromBlocks [[states],newCombinedState],fromBlocks [[outputs],[newOutState]])
+     Nothing -> Just (asRow $ fOut $ internalState reservoir,newOutState)
+     Just (states,outputs) -> Just (fromBlocks [[states],[asRow $ fOut $ internalState reservoir]],fromBlocks [[outputs],[newOutState]])
 
 runNetworkCollected timeSeries = foldM collectState Nothing timeSeries
   >>= return . fromJust
@@ -205,7 +202,7 @@ updateNetworkM noise input runningState =
     combinedState = case inputWeights reservoir of
       Just _ -> join [input,newState,outputState reservoir]
       Nothing -> join [newState,outputState reservoir]
-    newOut = (outputWeights reservoir) <> combinedState
+    newOut = (outputWeights reservoir) <> newState -- combinedState
     newNetwork = updateReservoirState newState newOut reservoir
   in
    (updateState newNetwork runningState,newNetwork)

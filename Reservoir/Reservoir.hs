@@ -81,13 +81,16 @@ rand :: Int -> Int -> IO (Matrix Double)
 rand n m = mapMatrixWithIndexM (\_ _-> randomIO) $ zeros n m
 
 randMatrix :: Int -> Int -> Double -> ReservoirRange Double Double -> IO (Matrix Double)
-randMatrix m n conn (Discrete vals) = undefined
+randMatrix m n conn (Discrete vals) = do
+  let
+    rand = shuffle $ toList vals
+  mapMatrixWithIndexM (\_ _ -> sampleRVar rand >>= return . head) $ zeros m n
 randMatrix m n conn (Continuous (min,max))  
   | max > min = do
     matrix' <- sprand m n conn
     let
       range = max - min
-      matrix = mapMatrix (\x -> if x==0 then 0 else (range * x)-min) matrix'
+      matrix = mapMatrix (\x -> if x==0 then 0 else (range * x)+min) matrix'
     return matrix
   | otherwise = undefined -- Throw an exception
                 
@@ -129,7 +132,7 @@ makeReservoir conf = do
   let
     state = buildVector units (\_->0)
     oState = buildVector outputs (\_->0)
-    outWM = zeros outputs (units+inputs+outputs)
+    outWM = zeros outputs (units)
   return $ Reservoir state oState inWM intWM outWM ofbWM ioFunctions
   where
     inputs = inputSize conf
