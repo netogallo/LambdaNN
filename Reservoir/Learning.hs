@@ -123,7 +123,7 @@ networkTrainerGeneric inputs teach regressionFun = do
   let
     teachMatrix = fromRows teach
     newOutWM = regressionFun intStates teachMatrix -- trans $ (pinv intStates) <> teachMatrix
-  return $ Reservoir (internalState reservoir) (outputState reservoir) (inputWeights reservoir) (internalWeights reservoir) newOutWM (outputFeedbackWeights reservoir) (networkFunctions reservoir)
+  return $ (Reservoir (internalState reservoir) (outputState reservoir) (inputWeights reservoir) (internalWeights reservoir) newOutWM (outputFeedbackWeights reservoir) (networkFunctions reservoir),intStates)
     
 
 collectReservoirState reservoir oldReservoir input history =

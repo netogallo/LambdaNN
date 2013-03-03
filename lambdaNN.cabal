@@ -10,7 +10,7 @@ category:          Machine Learning
 stability:         Experimental
 cabal-version:     >= 1.8
 build-type:        Simple
-homepage:          http://tersus.yesodweb.com/
+homepage:          http://netowork.me
 
 library
     exposed-modules: Reservoir.Reservoir
@@ -24,6 +24,7 @@ library
                    ,random-extras                >= 0.17
                    ,random-source                >= 0.3.0.0
                    ,rvar                         >= 0.2.0.0
+                   ,gnuplot                      >= 0.5.1
 
 executable         lambdaNN
 

@@ -38,11 +38,12 @@ hVals = map (\x -> mapVector (henonMap 1 1 1.4 0.3) x) inVals
 adjTanh x = tanh x
 
 config = (defaultConfig 0 100 1){inputFunction = mapVector adjTanh,
-                                 inputMatrixRange = Continuous (-4,4),
-                                 internalMatrixRange = Continuous (-1,1),
-                                 outputFeedbackRange = Continuous (-4,4),
-                                 internalSpectRadius = 1.3
+                                 outputFeedbackRange = Continuous (-2,2),
+                                 internalSpectRadius = 1.15,
+                                 internalConnectivity=0.3
                                 }
+
+tradeoff = 2.4
 
 initSize = 300
 trainSize = 1000
@@ -61,27 +62,25 @@ trainHenon tradeoff = do
   --networkTrainerPInv trainIn trainOut
   networkTrainerRRegression tradeoff trainIn trainOut
   
-hLearner = do
-  reservoir <- makeReservoir config
-  return $ runReservoirNoiseless reservoir $ trainHenon 2.5
+testHenon = do
+  (states,out) <- runNetworkCollected testIn
+  outReservoir <- getReservoir
+  return (outReservoir,states,out)
 
-hTester = do
-  (_,reservoir) <- hLearner
-  (_,(reservoir,states,output)) <- return $ runReservoirNoiseless reservoir $ do 
-    (states,out) <- runNetworkCollected testIn
-    outReservoir <- getReservoir
-    return (outReservoir,states,out)
-  return (reservoir,states,output)
-
-mainPlot = do
-  (reservoir,states,output) <- hTester
+mainPlot r0 tradeoff = do
+  (_,(reservoir,trainStates)) <- return $ runReservoirNoiseless r0 $ trainHenon tradeoff
+  (_,(reservoir,states,output)) <- return $ runReservoirNoiseless reservoir $ testHenon
   plotVectorsStyle [Title "Henon vs Output"] LinesPoints $ zipJoin testOut (toRows output)
   plotVectorsPaired [Title "Henon vs Output (2D)"] Points $ zipJoin testOut (toRows output)
-  plotVectorsStyle [Title "Internal States (10,50,90)"] LinesPoints $ map (\x -> fromList [x @> 10, x@>50,x@>90]) $ toRows states
+  plotVectorsStyle [Title "Internal States (Training) (20,40,70,90)"] Points $ selectStates [20,40,70,90] trainStates
+  plotVectorsStyle [Title "Internal States (Test) (20,40,70,90)"] Points $ selectStates [20,40,70,90] states
   plotMatrixEntries [Title "Trained Output Weights"] Points $ outputWeights reservoir
   return (reservoir,states,output)
   
-main = mainPlot >> return ()
+main = do 
+  r0 <- makeReservoir config
+  mainPlot r0 tradeoff
+  return ()
 
 configs = [config{inputMatrixRange=r,outputFeedbackRange=r,internalSpectRadius=s,internalConnectivity=c} | r <- ranges,s<-radius,c<-conn]
   where
@@ -90,17 +89,17 @@ configs = [config{inputMatrixRange=r,outputFeedbackRange=r,internalSpectRadius=s
     conn = [(x*2)/100 | x <- [5 .. 10]]
     
 
-hMaker = do
-  reservoirs <- mapM (\c -> makeReservoir c) configs
-  let
-    networks = reservoirs
-    rregressions = [networkTrainerRRegression (tradeoff/10) | tradeoff <- [1 .. 8] :: [Double]]
-  let
-    result = networksProfiler runWrapper networks normalizedRootMeanSquareErrorSigma1 rregressions dummy hVals 100 500 100
-  return $ result
-  where
-    runWrapper :: Reservoir Double -> RunReservoirM Double Noiseless (Reservoir Double,Double) -> (RunningState Noiseless Double,(Reservoir Double,Double))
-    runWrapper = runReservoirNoiseless
+-- hMaker = do
+--   reservoirs <- mapM (\c -> makeReservoir c) configs
+--   let
+--     networks = reservoirs
+--     rregressions = [networkTrainerRRegression (tradeoff/10) | tradeoff <- [1 .. 8] :: [Double]]
+--   let
+--     result = networksProfiler runWrapper networks normalizedRootMeanSquareErrorSigma1 rregressions dummy hVals 100 500 100
+--   return $ result
+--   where
+--     runWrapper :: Reservoir Double -> RunReservoirM Double Noiseless (Reservoir Double,Double) -> (RunningState Noiseless Double,(Reservoir Double,Double))
+--     runWrapper = runReservoirNoiseless
 
     
 -- henonMapRec s a b p 0 = s

@@ -51,6 +51,8 @@ data ReservoirConfiguration = ReservoirConfiguration {
   internalConnectivity :: Double,
   -- | The dimension of the network outputs
   outputSize :: Int,
+  -- | The percentage of non-zero entries in the output feedback matrix
+  outputFeedbackConnectivity :: Double,
   -- | The range of values in the output feedback Matrix
   outputFeedbackRange :: ReservoirRange Double Double,
   -- | The function that is applied to the result before writing it to the output channel
@@ -72,6 +74,7 @@ defaultConfig inputs intNodes outputs = ReservoirConfiguration {
   internalConnectivity = 0.1,
   outputSize = outputs,
   outputFeedbackRange = Continuous (-1,1),
+  outputFeedbackConnectivity = 1,
   outputFunction = id
   }
 
@@ -128,7 +131,7 @@ makeReservoir :: ReservoirConfiguration -> IO (Reservoir Double)
 makeReservoir conf = do
   intWM <- randMatrix units units conn intRange >>= return . (setSpectralRadius radius)
   inWM <- inputMatrix 
-  ofbWM <- randMatrix units outputs 1 ofbRange
+  ofbWM <- randMatrix units outputs ofbConn ofbRange
   let
     state = buildVector units (\_->0)
     oState = buildVector outputs (\_->0)
@@ -144,6 +147,7 @@ makeReservoir conf = do
     inRange = inputMatrixRange conf
     ioFunctions = (inputFunction conf,outputFunction conf)
     ofbRange = outputFeedbackRange conf
+    ofbConn = outputFeedbackConnectivity conf
     inputMatrix
       | inputs > 0 = randMatrix units inputs 1 inRange  >>= return . return
       | otherwise = return $ Nothing

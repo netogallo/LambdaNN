@@ -8,12 +8,17 @@ import Reservoir.Reservoir (Reservoir)
 import Control.Parallel.Strategies (parMap,rpar,rdeepseq)
 import Data.Packed.Matrix (toRows,Matrix,toLists,Element)
 import Reservoir.Reservoir (ReservoirState)
-import Data.Packed (Vector,join)
+import Data.Packed (Vector,join,fromList)
 import Data.Vector.Storable ()
 import Data.Packed.Vector(zipVector,foldVector,dim,(@>),buildVector)
 import Graphics.Gnuplot.Simple
 import Graphics.Gnuplot.Value.Tuple (C)
 import Foreign.Storable  (Storable)
+
+selectStates :: (Element a,Storable a) => [Int] -> Matrix a -> [Vector a]
+selectStates entries m = map (makeVector) $ toRows m
+  where
+    makeVector v = fromList $ map (\e -> v @> e) entries
 
 dimRange :: Storable a => Vector a -> [Int]
 dimRange vector = [0 .. ((dim vector) -1)]
