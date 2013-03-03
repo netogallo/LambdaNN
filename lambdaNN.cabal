@@ -11,9 +11,23 @@ stability:         Experimental
 cabal-version:     >= 1.8
 build-type:        Simple
 homepage:          http://netowork.me
+Description:
+    This is a Echo State Neural Network library for Haskell.
+
+    Echo state networks are a powerful learning algorithm
+    to learn chaotic time series. They can easliy adapt
+    to many different time series by tuning very few
+    parameters.
+
+    This library includes various different methods to
+    train Echo State Networks and utilities to visualize
+    the networks to further optimize their performance.
+    Custom algorithms can be built on top of this library.
 
 library
     exposed-modules: Reservoir.Reservoir
+                     Reservoir.Learning
+                     Reservoir.LearningUtils
 
     extensions: TemplateHaskell
 
@@ -25,10 +39,15 @@ library
                    ,random-source                >= 0.3.0.0
                    ,rvar                         >= 0.2.0.0
                    ,gnuplot                      >= 0.5.1
+                   ,vector                       >= 0.10.0.0
+                   ,parallel                     >= 3.2.0.3
 
 executable         lambdaNN
 
-    main-is:           ../main.hs
+    main-is:           ../Tests/Henon/TestHenon.hs
     hs-source-dirs:    dist
     build-depends:     base
-                     , lambdaNN                     
+                     , lambdaNN
+                     , gnuplot
+                     , vector
+                     , hmatrix

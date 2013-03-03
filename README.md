@@ -20,3 +20,6 @@ The examples folder contains a file for learning the Henon time series. By defau
 Following are the generated plots of one of such examples:
 
 ![Henon output vs network output (2d)](Extra/henon_vs_nn_2d.png)
+![Henon output vs network output](Extra/henon_vs_nn.png)
+![Internal states during testing](Extra/internal_states_testing.png)
+![Trained output weights](Extra/output_weights.png)

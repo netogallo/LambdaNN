@@ -3,7 +3,6 @@ import Reservoir.LearningUtils
 import Reservoir.Reservoir
 import Data.Packed.Vector
 import Foreign.Storable (Storable)
-import Foreign.Storable.Tuple
 import Data.Packed.Matrix
 import Graphics.Gnuplot.Simple
 
@@ -77,6 +76,7 @@ mainPlot r0 tradeoff = do
   plotMatrixEntries [Title "Trained Output Weights"] Points $ outputWeights reservoir
   return (reservoir,states,output)
   
+main :: IO ()
 main = do 
   r0 <- makeReservoir config
   mainPlot r0 tradeoff
