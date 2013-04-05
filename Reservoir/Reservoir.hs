@@ -131,11 +131,11 @@ makeReservoir :: ReservoirConfiguration -> IO (Reservoir Double)
 makeReservoir conf = do
   intWM <- randMatrix units units conn intRange >>= return . (setSpectralRadius radius)
   inWM <- inputMatrix 
-  ofbWM <- randMatrix units outputs ofbConn ofbRange
+  ofbWM <- randMatrix outputs units ofbConn ofbRange
   let
     state = buildVector units (\_->0)
     oState = buildVector outputs (\_->0)
-    outWM = zeros outputs (units)
+    outWM = zeros units outputs
   return $ Reservoir state oState inWM intWM outWM ofbWM ioFunctions
   where
     inputs = inputSize conf
@@ -149,7 +149,7 @@ makeReservoir conf = do
     ofbRange = outputFeedbackRange conf
     ofbConn = outputFeedbackConnectivity conf
     inputMatrix
-      | inputs > 0 = randMatrix units inputs 1 inRange  >>= return . return
+      | inputs > 0 = randMatrix inputs units 1 inRange  >>= return . return
       | otherwise = return $ Nothing
 
 reservoirDim :: Foreign.Storable.Storable a => Reservoir a -> Int

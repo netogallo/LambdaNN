@@ -6,12 +6,13 @@ import Control.Monad              (foldM,forM)
 import Data.Packed.Matrix
 import Data.Packed.Vector
 import Numeric.Container          ((<>))
-import Numeric.LinearAlgebra.Algorithms (pinv,inv)
+import Numeric.LinearAlgebra.Algorithms (pinv,inv,det)
 import Numeric.LinearAlgebra.Util (zeros)
 import Reservoir.Reservoir
 import System.Random
 import Data.Maybe (fromJust)
 import Foreign.Storable (Storable)
+import Debug.Trace
 
 data Noiseless = Noiseless
 
@@ -111,11 +112,21 @@ trainUpdateNetwork noise (f,fInv) (input,teach) reservoir = let
    Reservoir state teach inWM intWM outWM ofbWM
 -}
 
-networkTrainerRRegression tradeoff inputs teach = networkTrainerGeneric inputs teach $ \statesMatrix teachMatrix -> trans $ (inv $ (trans statesMatrix) <> statesMatrix + tradeoff') <> (trans statesMatrix) <> teachMatrix
+rRegression tradeoff statesMatrix teacherMatrix = (inv $ (trans statesMatrix) <> statesMatrix + tradeoff') <> ((trans statesMatrix) <> teacherMatrix)
+  where
+    tradeoff' = mapMatrixWithIndex (\(i,j) v -> if i==j then tradeoff else v) $ zeros (cols statesMatrix) (cols statesMatrix)
+
+rRegressionTesting tradeoff statesMatrix teacherMatrix 
+  | det ((trans statesMatrix) <> statesMatrix + tradeoff') /= 0 = rRegression tradeoff statesMatrix teacherMatrix
+  | otherwise = trace (show $ (trans statesMatrix) <> statesMatrix + tradeoff') 0
   where
     tradeoff' = mapMatrixWithIndex (\(i,j) v -> if i==j then tradeoff else v) 0
+    
+networkTrainerRRegressionTesting tradeoff inputs teach = networkTrainerGeneric inputs teach $ rRegressionTesting tradeoff
 
-networkTrainerPInv inputs teach = networkTrainerGeneric inputs teach (\statesMatrix teachMatrix -> trans $ (pinv statesMatrix) <> teachMatrix)
+networkTrainerRRegression tradeoff inputs teach = networkTrainerGeneric inputs teach $ rRegression tradeoff
+
+networkTrainerPInv inputs teach = networkTrainerGeneric inputs teach (\statesMatrix teachMatrix -> (pinv statesMatrix) <> teachMatrix)
 
 networkTrainerGeneric inputs teach regressionFun = do
   (intStates,_) <- runNetworkCollectedTeacherForced inputs teach
@@ -195,14 +206,14 @@ updateNetworkM noise input runningState =
     (f,fOut) = networkFunctions reservoir
     inputMult = case inputWeights reservoir of
       Nothing -> buildVector (reservoirDim reservoir) (\_->0)
-      Just inWM -> inWM <> input
-    internalMult = internalWeights reservoir <> internalState reservoir
-    outputMult = outputFeedbackWeights reservoir <> outputState reservoir
+      Just inWM -> input <> inWM -- inWM <> input
+    internalMult = internalState reservoir <> internalWeights reservoir  -- internalWeights reservoir <> internalState reservoir
+    outputMult = outputState reservoir <> outputFeedbackWeights reservoir -- outputFeedbackWeights reservoir <> outputState reservoir
     newState = f $ noise + inputMult + internalMult + outputMult
     combinedState = case inputWeights reservoir of
       Just _ -> join [input,newState,outputState reservoir]
       Nothing -> join [newState,outputState reservoir]
-    newOut = (outputWeights reservoir) <> newState -- combinedState
+    newOut = newState <> (outputWeights reservoir) -- combinedState
     newNetwork = updateReservoirState newState newOut reservoir
   in
    (updateState newNetwork runningState,newNetwork)
