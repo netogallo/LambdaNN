@@ -13,6 +13,8 @@ import           Numeric.LinearAlgebra.LAPACK (eigOnlyS)
 import           Numeric.LinearAlgebra.Util   (zeros)
 import           System.Random                (randomIO)
 import           Foreign.Storable             (Storable)
+import           Data.Random hiding (shuffle)
+import           Data.Random.Distribution.Normal (normal)
 
 -- | Matrix that contains the connection weights among states in the neural network
 type WeightMatrix a = Matrix a
@@ -21,13 +23,15 @@ type InputVector a = Vector a
 type OutputState a = Vector a
 
 data Reservoir a = Reservoir {
-     internalState :: ReservoirState a,
-     outputState :: ReservoirState a,
-     inputWeights :: Maybe (WeightMatrix a),
-     internalWeights :: WeightMatrix a,
-     outputWeights :: WeightMatrix a,
-     outputFeedbackWeights :: WeightMatrix a,
-     networkFunctions :: (ReservoirState a->ReservoirState a,ReservoirState a->ReservoirState a)
+  biasVector :: Vector a,
+  leakyIntegrator :: Maybe Double,
+  internalState :: ReservoirState a,
+  outputState :: ReservoirState a,
+  inputWeights :: Maybe (WeightMatrix a),
+  internalWeights :: WeightMatrix a,
+  outputWeights :: WeightMatrix a,
+  outputFeedbackWeights :: WeightMatrix a,
+  networkFunctions :: (ReservoirState a->ReservoirState a,ReservoirState a->ReservoirState a)
 }
 
 -- | Represents the values that randomly generated can contain
@@ -56,13 +60,25 @@ data ReservoirConfiguration = ReservoirConfiguration {
   -- | The range of values in the output feedback Matrix
   outputFeedbackRange :: ReservoirRange Double Double,
   -- | The function that is applied to the result before writing it to the output channel
-  outputFunction :: (Vector Double -> Vector Double)
+  outputFunction :: (Vector Double -> Vector Double),
+  -- | The variance for the values of the bias vector
+  biasVectorMag :: Double,
+  -- | The magnitud of the leaky integrator
+  leakyIntegratorMag :: Maybe Double
   }
 
-     
 instance Show (Reservoir Double) where
-  show (Reservoir s oState inWM intWM outWM ofbWM _) = "Reservoir " ++ (show s) ++ " " ++ (show oState) ++ " " ++ (show inWM) ++ " " ++ (show intWM) ++ " " ++ (show outWM) ++ " " ++ (show ofbWM)
-
+  show r = "Reservoir{\n" ++ 
+           (foldl (\r a -> r ++ "\n" ++ a) "" fields) ++
+           "}"
+    where
+      fields = [
+        "Bias Vector: " ++ (show $ biasVector r),
+        "Leaky Integrator: " ++ (show $ leakyIntegrator r),
+        "Internal State: " ++ (show $ internalState r),
+        "Output State: " ++ (show $ outputState r)
+        ]               
+               
 -- | Generates a default configuration for the reservoir
 defaultConfig inputs intNodes outputs = ReservoirConfiguration {
   inputSize = inputs,
@@ -75,8 +91,23 @@ defaultConfig inputs intNodes outputs = ReservoirConfiguration {
   outputSize = outputs,
   outputFeedbackRange = Continuous (-1,1),
   outputFeedbackConnectivity = 1,
-  outputFunction = id
+  outputFunction = id,
+  biasVectorMag = 0,
+  leakyIntegratorMag = Nothing
   }
+
+-- | Generate a random vector according to the given distribution
+randVectorGen dist mag = do
+  let 
+    v = buildVector mag (\_ -> 0) :: Vector Double
+  mapVectorM (\_ -> sampleRVar dist) v
+  
+-- | Build a bias vector for the network
+buildBiasVector :: Int -> Double -> IO (Vector Double)
+buildBiasVector size scale = do
+  let
+    dist = normal 0 scale
+  randVectorGen dist size
 
 -- | Generate a random matrix of size n x m. The entries
 -- are between 0 and 1
@@ -132,11 +163,24 @@ makeReservoir conf = do
   intWM <- randMatrix units units conn intRange >>= return . (setSpectralRadius radius)
   inWM <- inputMatrix 
   ofbWM <- randMatrix outputs units ofbConn ofbRange
+  bias <- case biasVectorMag conf of
+    0 -> return $ buildVector units (\_ -> 0)
+    b -> buildBiasVector units b
   let
     state = buildVector units (\_->0)
     oState = buildVector outputs (\_->0)
     outWM = zeros units outputs
-  return $ Reservoir state oState inWM intWM outWM ofbWM ioFunctions
+  return $ Reservoir{ 
+    biasVector = bias, 
+    leakyIntegrator = leakyIntegratorMag conf,
+    internalState = state, 
+    outputState = oState, 
+    inputWeights = inWM, 
+    internalWeights = intWM, 
+    outputWeights = outWM, 
+    outputFeedbackWeights = ofbWM, 
+    networkFunctions = ioFunctions
+    }
   where
     inputs = inputSize conf
     outputs = outputSize conf
@@ -163,7 +207,7 @@ reservoirOutDim :: Foreign.Storable.Storable a => Reservoir a -> Int
 reservoirOutDim = dim . outputState
 
 updateReservoirState :: ReservoirState a -> ReservoirState a -> Reservoir a -> Reservoir a
-updateReservoirState newState newOut (Reservoir _ _ inWM intWM outWM ofbWM funs) = Reservoir newState newOut inWM intWM outWM ofbWM funs
+updateReservoirState newState newOut res = res {internalState = newState,outputState = newOut}
 
 updateWeightMatrix reservoir matrix = reservoir {internalWeights = matrix}
 

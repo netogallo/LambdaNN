@@ -35,6 +35,7 @@ library
                    ,hmatrix                      >= 0.14.1.0
                    ,MissingH                     >= 1.2.0.0
                    ,random                       >= 1.0.0.0
+                   ,random-fu
                    ,random-extras                >= 0.17
                    ,random-source                >= 0.3.0.0
                    ,rvar                         >= 0.2.0.0

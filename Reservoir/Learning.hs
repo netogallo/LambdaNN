@@ -134,10 +134,13 @@ networkTrainerGeneric inputs teach regressionFun = do
   let
     teachMatrix = fromRows teach
     newOutWM = regressionFun intStates teachMatrix -- trans $ (pinv intStates) <> teachMatrix
-  return $ (Reservoir (internalState reservoir) (outputState reservoir) (inputWeights reservoir) (internalWeights reservoir) newOutWM (outputFeedbackWeights reservoir) (networkFunctions reservoir),intStates)
+    trainedReservoir = reservoir{
+      outputWeights = newOutWM
+      }
+  return $ (trainedReservoir,intStates)
     
 
-collectReservoirState reservoir oldReservoir input history =
+collectReservoirState reservoir input history =
   let        
     newIntState = asRow $ internalState reservoir
     newOutState = asRow $ outputState reservoir
@@ -151,18 +154,16 @@ runNetworkCollected timeSeries = foldM collectState Nothing timeSeries
   >>= return . fromJust
   where
     collectState history input = do
-      oldReservoir <- getReservoir
       reservoir <- updateNetwork input
-      return $ collectReservoirState reservoir oldReservoir input history
+      return $ collectReservoirState reservoir input history
 
 runNetworkCollectedTeacherForced inputs outputs = do 
   res <- foldM collectState Nothing $ zip inputs outputs
   return $ fromJust res
   where
     collectState history (input,output) = do
-      oldReservoir <- getReservoir
       reservoir <- updateNetworkTeacherForced input output
-      return $ collectReservoirState reservoir oldReservoir input history
+      return $ collectReservoirState reservoir input history
 
 runNetwork timeSeries = forM timeSeries (\value -> updateNetwork value >>= return . outputState)
 
@@ -191,7 +192,7 @@ updateNetworkTeacherForced input output = do
   let
     newReservoir = updateReservoirState (internalState reservoir) output reservoir
   setReservoir newReservoir
-  return newReservoir  
+  return reservoir
 
 updateNetwork input = do
   r <- getReservoir
@@ -209,7 +210,10 @@ updateNetworkM noise input runningState =
       Just inWM -> input <> inWM -- inWM <> input
     internalMult = internalState reservoir <> internalWeights reservoir  -- internalWeights reservoir <> internalState reservoir
     outputMult = outputState reservoir <> outputFeedbackWeights reservoir -- outputFeedbackWeights reservoir <> outputState reservoir
-    newState = f $ noise + inputMult + internalMult + outputMult
+    stateUpdate = (biasVector reservoir) + (f $ noise + inputMult + internalMult + outputMult)
+    newState = case leakyIntegrator reservoir of 
+      Nothing -> stateUpdate
+      Just l -> (mapVector (*(1-l)) (internalState reservoir)) + (mapVector (*l) stateUpdate)
     combinedState = case inputWeights reservoir of
       Just _ -> join [input,newState,outputState reservoir]
       Nothing -> join [newState,outputState reservoir]

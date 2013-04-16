@@ -8,12 +8,16 @@ import Reservoir.Reservoir (Reservoir)
 import Control.Parallel.Strategies (parMap,rpar,rdeepseq)
 import Data.Packed.Matrix (toRows,Matrix,toLists,Element)
 import Reservoir.Reservoir (ReservoirState)
-import Data.Packed (Vector,join,fromList)
+import Data.Packed (Vector,join,fromList,toList)
 import Data.Vector.Storable ()
 import Data.Packed.Vector(zipVector,foldVector,dim,(@>),buildVector)
 import Graphics.Gnuplot.Simple
 import Graphics.Gnuplot.Value.Tuple (C)
 import Foreign.Storable  (Storable)
+import Numeric.LinearAlgebra.Util (norm)
+
+mse :: [Vector Double] -> [Vector Double] -> Double
+mse xs ys = sum $ map (\(x,y) -> norm $ x - y) $ zip xs ys                              
 
 selectStates :: (Element a,Storable a) => [Int] -> Matrix a -> [Vector a]
 selectStates entries m = map (makeVector) $ toRows m
@@ -25,6 +29,11 @@ dimRange vector = [0 .. ((dim vector) -1)]
 
 zipJoin :: Storable a => [Vector a] -> [Vector a] -> [Vector a]
 zipJoin vec1 vec2 = map (\(x,y) -> join [x,y]) $ zip vec1 vec2
+
+--plotPairs :: (C a,Storable a,Storable (a,a)) => [Attribute] -> PlotType -> [(Vector a,Vector a)] -> IO ()
+plotPairs attr pType vectors = plotListStyle attr (PlotStyle pType $ DefaultStyle 1) values
+  where    
+    values = foldr (\(v1,v2) accm -> (zip (toList v1) (toList v2)) ++ accm) [] vectors
 
 plotVectorsPaired :: (C a,Storable a) => [Attribute] -> PlotType -> [Vector a] -> IO ()
 plotVectorsPaired attr pType vectors = plotListsStyle attr values
@@ -59,6 +68,12 @@ normalizedRootMeanSquareErrorSigma1 :: [Vector Double] -> [Vector Double] -> Dou
 normalizedRootMeanSquareErrorSigma1 teach output = normalizedRootMeanSquareError sigmasSq teach output
   where
     sigmasSq = repeat $ buildVector (dim $ head teach) $ (\_ -> 1)
+
+profileNetworkTecherForced error initialIn initialOut inputs outputs = do
+  _ <- runNetworkTeacherForced initialIn initialOut
+  (intStates,outStates) <- runNetworkCollectedTeacherForced inputs outputs
+  return (error (toRows outStates) outputs)  
+  
 
 networksProfiler :: (Reservoir Double -> RunReservoirM Double rand (Reservoir Double, Double) -> (RunningState t Double,(Reservoir Double, Double)))
                     -> [Reservoir Double]
