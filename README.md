@@ -28,7 +28,7 @@ Following are the generated plots of one of such examples:
 
 ## Motion Capture
 
-An Echo State Network was trained to learn human movements. The script used to learn this movement can be found. The network parameters used are the following:
+An Echo State Network was trained to learn human movements. The script used to learn this movement can be found at [https://github.com/netogallo/Scripts/blob/master/LambdaNN/motionCapture.hs](https://github.com/netogallo/Scripts/blob/master/LambdaNN/motionCapture.hs). The network parameters used are the following:
 
  * Network size: 100 Nodes
  * Network output size: 28 outputs
@@ -45,4 +45,4 @@ Walking is a periodic movement well suited for this type of networks. Normally, 
 
 We can observe that the network state evolves in a nice and periodic way. Also it is stable so the walk can continue without transforming into chaos. Following is a video of the walk exported to motion capture data:
 
-[![Network Walk](Extra/viedo_play.png)](http://youtu.be/CFBA8D2t0sM)
+[![Network Walk](Extra/video_play.png)](http://youtu.be/CFBA8D2t0sM)
