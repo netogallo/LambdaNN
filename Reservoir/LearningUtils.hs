@@ -6,7 +6,7 @@ module Reservoir.LearningUtils where
 import Reservoir.Learning
 import Reservoir.Reservoir (Reservoir)
 import Control.Parallel.Strategies (parMap,rpar,rdeepseq)
-import Data.Packed.Matrix (toRows,Matrix,toLists,Element)
+import Data.Packed.Matrix (toRows,Matrix,toLists,Element,cols)
 import Reservoir.Reservoir (ReservoirState)
 import Data.Packed (Vector,join,fromList,toList)
 import Data.Vector.Storable ()
@@ -15,6 +15,12 @@ import Graphics.Gnuplot.Simple
 import Graphics.Gnuplot.Value.Tuple (C)
 import Foreign.Storable  (Storable)
 import Numeric.LinearAlgebra.Util (norm)
+
+autoSelectStates :: Int -> Matrix Double -> [Vector Double]
+autoSelectStates n vs = selectStates sStates vs
+  where
+    step = cols vs `div` n
+    sStates = [x*step | x <- [0..(n-1)]]
 
 mse :: [Vector Double] -> [Vector Double] -> Double
 mse xs ys = sum $ map (\(x,y) -> norm $ x - y) $ zip xs ys                              
@@ -74,7 +80,6 @@ profileNetworkTecherForced error initialIn initialOut inputs outputs = do
   (intStates,outStates) <- runNetworkCollectedTeacherForced inputs outputs
   return (error (toRows outStates) outputs)  
   
-
 networksProfiler :: (Reservoir Double -> RunReservoirM Double rand (Reservoir Double, Double) -> (RunningState t Double,(Reservoir Double, Double)))
                     -> [Reservoir Double]
                     -> ([Vector Double] -> [Vector Double] -> Double)
