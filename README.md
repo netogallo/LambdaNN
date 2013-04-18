@@ -45,4 +45,4 @@ Walking is a periodic movement well suited for this type of networks. Normally, 
 
 We can observe that the network state evolves in a nice and periodic way. Also it is stable so the walk can continue without transforming into chaos. Following is a video of the walk exported to motion capture data:
 
-[![Network Walk](https://raw.github.com/GabLeRoux/WebMole/master/ressources/WebMole_Youtube_Video.png)](http://youtu.be/CFBA8D2t0sM)
+![Network Walk](http://youtu.be/CFBA8D2t0sM)
