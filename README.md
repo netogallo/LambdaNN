@@ -37,12 +37,10 @@ An Echo State Network was trained to learn human movements. The script used to l
  * No input weights
  * Range of Output Feedback Weights: (-1/4,1/4)
  * Regularization Parameter for the Ridge Regression: 0.15
- * Leaky Ingegrator of 1/5
+ * Leaky Integrator of 1/5
 
 Walking is a periodic movement well suited for this type of networks. Normally, a network of 100 units would not be capable of learning to simulate walking since the period is too big for such a network. To address this problem, a leaky integrator was used. The leaky integrator has the property of slowing the network down so it can learn periodic motions with bigger periods without needing additional units. 
 
 ![Internal network sates during walk (first 500)](Extra/walk_states.png)
 
-We can observe that the network state evolves in a nice and periodic way. Also it is stable so the walk can continue without transforming into chaos. Following is a video of the walk exported to motion capture data:
-
-[![Network Walk](Extra/video_play.png)](http://youtu.be/CFBA8D2t0sM)
+We can observe that the network state evolves in a nice and periodic way. Also it is stable so the walk can continue without transforming into chaos. A video of the autonomous run produced by the network can be fond here: [http://youtu.be/CFBA8D2t0sM](http://youtu.be/CFBA8D2t0sM).
