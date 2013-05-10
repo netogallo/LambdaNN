@@ -1,9 +1,60 @@
+@inproceedings{GentHumanMotion,
+  abstract     = {To generate coordinated periodic movements, robot locomotion demands mechanisms which are able to learn and produce stable rhythmic motion in a controllable way. Because systems based on biological central pattern generators (CPGs) can cope with these demands, these kind of systems are gaining in success. In this work we introduce a novel methodology that uses the dynamics of a randomly connected recurrent neural network for the design of CPGs. When a randomly connected recurrent neural network is excited with one or more useful signals, an output can be trained by learning an instantaneous linear mapping of the neuron states. This technique is known as reservoir computing (RC). We will show that RC has the necessary capabilities to be fruitful in designing a CPG that is able to learn human motion which is applicable for imitation learning in humanoid robots.},
+  author       = {wyffels, Francis and Schrauwen, Benjamin},
+  booktitle    = {ATEQUAL 2009 : 2009 ECSIS Symposium on Advanced Technologies for Enhanced Quality of Life (LABRS and ARTIPED 2009) : proceedings},
+  editor       = {Stoica, Adrian},
+  isbn         = {978-0-7695-3753-5},
+  keyword      = {reservoir computing,central pattern generators,robotics},
+  language     = {eng},
+  location     = {Iasi, Roemania},
+  pages        = {118--122},
+  publisher    = {IEEE Computer Society},
+  title        = {Design of a central pattern generator using reservoir computing for learning human motion},
+  url          = {http://dx.doi.org/10.1109/AT-EQUAL.2009.32},
+  year         = {2009},
+}
+
+@INPROCEEDINGS{TaylorModelingHuman,
+    author = {Graham W. Taylor and Geoffrey E. Hinton and Sam Roweis},
+    title = {Modeling human motion using binary latent variables},
+    booktitle = {Advances in Neural Information Processing Systems},
+    year = {2006},
+    pages = {2007},
+    publisher = {MIT Press}
+}
+
+
+
+@ARTICLE{Joshi05MovementGeneration,
+    author = {Prashant Joshi and Wolfgang Maass and Technische Universität Graz},
+    title = {Movement generation with circuits of spiking neurons},
+    journal = {Neural Computation},
+    year = {2005},
+    volume = {17},
+    pages = {1715--1738}
+}
+
+@techreport{ESNMemory,
+  author = "Jaeger, Herbert and Douglas Eck",
+  year = "2008",
+  title = "Can't Get You Out of My Head: A Connectionist Model of Cyclic Rehersal",
+  institution = "Jacobs University Bremen and University of Montreal"
+}
+
 @techreport{JaegerESNTutorial,
   author = "Jaeger, Herbert",
   year = "2010",
   title = "The ''echo state'' approach to analysing and training recurrent neural networks - with an Erratum note",
   institution = "Fraunhofer Institute for Autonomous Intelligent Systems"
 }
+
+@techreport{Jaeger05TrainingRRN,
+  author = "Herbert Jaeger",
+  year = "2008",
+  title = "A tutorial on training recurrent neural networks, covering BPPT, RTRL, EKF and the ''echo state network'' approach",
+  institution = "Fraunhofer Institute for Autonomous Intelligent Systems"
+}
+
 
 @techreport{MocapFormats,
   author = "Lander, Jeff",
@@ -12,6 +63,21 @@
   institution = "Game Developer"
 }
 
+@MastersThesis{ESNRobots,
+    author = "Razvan-George Mihalyi",
+    title = "Echo State Networks - Pattern Generation for Motor Control",
+    school = "Jacobs University Bremen",
+    address = "",
+    year = {2011},
+    }
+
+@MastersThesis{ESNVerstraeten,
+    author = "David Verstraeten",
+    title = "Reservoir Computing: computation with dynamical systems",
+    school = "Vakgroep Elektronica en Informatiesystemen",
+    address = "",
+    year = {2010},
+    }
 
 @article{ZhengSegmentationRecognition,
   author = "Li,Chuanjun and Zheng, S. Q. and Prabhakaran,B.",
@@ -77,11 +143,24 @@ howpublished = {\url{https://github.com/netogallo/LambdaNN}},
 title = "Lambda Neural Networks"
 }
 
+@misc{MLBlog,
+author = "Ernesto Rodriguez",
+howpublished = {\url{http://machinelearningac.wordpress.com/}},
+title = "Lambda Neural Networks"
+}
+
 @misc{PsudoInverse, 
 author = "Weisstein, Eric W.",
 title = "Moore-Penrose Matrix Inverse",
 howpublished = {From \href{http://mathworld.wolfram.com/}{MathWorld} -- A Wolfram Web Resource. \url{http://mathworld.wolfram.com/Pseudoinverse.html}}
 }
+
+@misc{CMUMocap, 
+author = "Carnigie Mellon University",
+title = "CMU Graphics Lab Motion Capture Database",
+howpublished = {From \href{http://cs.cmu.edu/}{Carnigie Mellon University -- School of Computer Science} -- CMU Graphics Lab Motion Capture Database. \url{http://mocap.cs.cmu.edu/}}
+}
+
 
 @misc{AILecture,
 author = "Pathak, Kaustubh",
