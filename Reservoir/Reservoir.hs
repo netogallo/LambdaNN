@@ -32,7 +32,7 @@ data Reservoir a = Reservoir {
   outputWeights :: WeightMatrix a,
   outputFeedbackWeights :: WeightMatrix a,
   networkFunctions :: (ReservoirState a->ReservoirState a,ReservoirState a->ReservoirState a)
-}
+  }
 
 -- | Represents the values that randomly generated can contain
 data Ord a => ReservoirRange a b = Discrete (Vector b) | Continuous (a,a)

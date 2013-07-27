@@ -124,7 +124,7 @@ where,
 \end{itemize}
 The output of the network at time $t$ is given by the equation
 \begin{equation}
-{\bf y}(t+1)={\bf f^{out}}({\bf W^{out}}{\bf x}(t+1))
+  {\bf y}(t+1)={\bf f^{out}}({\bf W^{out}}{\bf x}(t+1))
 \end{equation}
 where,
 \begin{itemize}
@@ -136,7 +136,7 @@ The training procedure for ESNs goes as follows. Suppose we are given the output
 
 {\bf Run the network} by teacher forcing the ${\bf y_{teach}}(t)$ signal into the network. Teacher forcing consists of replacing the network output ${\bf y}(t)$ with the value of ${\bf y_{teach}}(t)$. This means that the update function of the network becomes:
 \begin{equation}
-{\bf x}(t+1)= (\lambda {\bf x(t)}) + (1-\lambda){\bf f}({\bf Wx}(t) + {\bf W^{back}y_{teach}}(t)) + {\bf x}^{bias}
+  {\bf x}(t+1)= (\lambda {\bf x(t)}) + (1-\lambda){\bf f}({\bf Wx}(t) + {\bf W^{back}y_{teach}}(t)) + {\bf x}^{bias}
 \end{equation}
 The network must be run in this way for some initial transient and the outputs during this transient will be discarded. It is better to discard a big amount of initial states, but the amount of data discarded also depends on the amount of training data available. \pagebreak
 

@@ -75,10 +75,12 @@ normalizedRootMeanSquareErrorSigma1 teach output = normalizedRootMeanSquareError
   where
     sigmasSq = repeat $ buildVector (dim $ head teach) $ (\_ -> 1)
 
-profileNetworkTecherForced error initialIn initialOut inputs outputs = do
-  _ <- runNetworkTeacherForced initialIn initialOut
+profileNetworkTecherForced error [] _ inputs outputs = do  
   (intStates,outStates) <- runNetworkCollectedTeacherForced inputs outputs
   return (error (toRows outStates) outputs)  
+profileNetworkTecherForced error initialIn initialOut inputs outputs = do
+  _ <- runNetworkTeacherForced initialIn initialOut
+  profileNetworkTecherForced error [] [] inputs outputs
   
 networksProfiler :: (Reservoir Double -> RunReservoirM Double rand (Reservoir Double, Double) -> (RunningState t Double,(Reservoir Double, Double)))
                     -> [Reservoir Double]
